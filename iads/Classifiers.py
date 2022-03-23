@@ -8,6 +8,7 @@
 # Classifieurs
 
 
+import copy
 import numpy as np
 
 
@@ -413,3 +414,27 @@ class ClassifierPerceptronBiais(Classifier):
 
     def predict(self, x):
         return -1 if self.score(x) <= 0 else 1
+
+
+class ClassifierMultiOAA(Classifier):
+    """
+    Classifier multi-classe générique
+    """
+    
+    def __init__(self, classifier):
+        self.classifier = classifier
+        self.classifiers = []
+            
+    def train(self, desc_set, label_set, **args):
+        self.classifiers = [copy.deepcopy(self.classifier) for i in np.unique(label_set)]
+        for i in range(len(self.classifiers)):
+            label_set_i = label_set.copy()
+            label_set_i[label_set_i != i] = -1
+            label_set_i[label_set_i == i] = +1
+            self.classifiers[i].train(desc_set, label_set_i, **args)
+            
+    def score(self, x):
+        return np.array([cl.score(x) for cl in self.classifiers])
+
+    def predict(self, x):
+        return np.argmax(self.score(x))
