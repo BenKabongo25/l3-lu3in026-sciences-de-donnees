@@ -10,6 +10,7 @@
 
 import numpy as np
 
+
 class Classifier:
     """
     Classe de base des classifieurs
@@ -54,12 +55,7 @@ class Classifier:
         :return la performance du classifieur
         Hypothèse: desc_set et label_set ont le même nombre de lignes
         """
-        vp = 0
-        n = len(label_set)
-        for i in range(n):
-            if self.predict(desc_set[i]) == label_set[i]:
-                vp += 1
-        return vp/n
+        return np.sum(np.array([self.predict(x) for x in desc_set]) == label_set) / len(label_set)
 
 
 class ClassifierLineaireRandom(Classifier):
@@ -105,9 +101,7 @@ class ClassifierKNN(Classifier):
         """
         dist = np.linalg.norm(self.desc_set-x, axis=1)
         argsort = np.argsort(dist)
-        score = 0
-        for i in argsort[:self.k]:
-            score += 1 if self.label_set[i] == +1 else 0
+        score = np.sum(self.label_set[argsort[:self.k]] == 1)
         return 2 * (score/self.k -.5)
 
     def predict(self, x):
@@ -349,6 +343,7 @@ class ClassifierPerceptronKernel(Classifier):
         :return la prediction sur x (soit -1 ou soit +1)
         """
         return -1 if self.score(x) <= 0 else +1
+
 
 class ClassifierPerceptronBiais(Classifier):
     """

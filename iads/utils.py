@@ -68,3 +68,24 @@ def create_XOR(n, sigma):
     four  = sigma * np.random.randn(n, 2) + [1, 0]
     return (np.vstack((one, two, three, four)),
            np.hstack((-1*np.ones(2*n), np.ones(2*n))))
+
+
+def crossval(X, Y, n, i):
+    start, end = i*int(len(Y)/n), (i+1)*int(len(Y)/n)
+    Xtrain = np.delete(X, np.s_[start:end], axis=0)
+    Ytrain = np.delete(Y, np.s_[start:end], axis=0)
+    Xtest = X[start:end]
+    Ytest = Y[start:end]
+    return Xtrain, Ytrain, Xtest, Ytest
+
+
+def crossval_strat(X, Y, n, i):
+    Xtrain1, Ytrain1, Xtest1, Ytest1 = crossval(X[Y==-1], Y[Y==-1], n, i)
+    Xtrain2, Ytrain2, Xtest2, Ytest2 = crossval(X[Y==+1], Y[Y==+1], n, i)
+    Xtrain = np.concatenate((Xtrain1, Xtrain2))
+    Ytrain = np.concatenate((Ytrain1, Ytrain2))
+    Xtest = np.concatenate((Xtest1, Xtest2))
+    Ytest = np.concatenate((Ytest1, Ytest2))
+    return Xtrain, Ytrain, Xtest, Ytest
+
+
