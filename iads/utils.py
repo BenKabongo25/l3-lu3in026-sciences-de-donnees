@@ -9,6 +9,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 
 def genere_dataset_uniform(p, n, xmin, xmax):
@@ -173,5 +174,20 @@ def crossval_strat(X, Y, n, i):
     Xtest = np.concatenate((Xtest1, Xtest2))
     Ytest = np.concatenate((Ytest1, Ytest2))
     return Xtrain, Ytrain, Xtest, Ytest
+
+
+def crossval_strat_multi_class(X, Y, n, i):
+    """
+    Cross val strat multi-classe
+    """
+    Xtrains, Ytrains, Xtests, Ytests = [], [], [], []
+    for y in np.unique(Y):
+        Xtrainy, Ytrainy, Xtesty, Ytesty = crossval(X[Y==y], Y[Y==y], n, i)
+        Xtrains.append(Xtrainy)
+        Ytrains.append(Ytrainy)
+        Xtests.append(Xtesty)
+        Ytests.append(Ytesty)
+    return (np.concatenate(Xtrains), np.concatenate(Ytrains),
+            np.concatenate(Xtests), np.concatenate(Ytests))
 
 
