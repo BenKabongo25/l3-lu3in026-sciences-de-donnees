@@ -166,20 +166,17 @@ def crossval(X, Y, n, i):
     return Xtrain, Ytrain, Xtest, Ytest
 
 
+#def crossval_strat(X, Y, n, i):
+#    Xtrain1, Ytrain1, Xtest1, Ytest1 = crossval(X[Y==-1], Y[Y==-1], n, i)
+#    Xtrain2, Ytrain2, Xtest2, Ytest2 = crossval(X[Y==+1], Y[Y==+1], n, i)
+#    Xtrain = np.concatenate((Xtrain1, Xtrain2))
+#    Ytrain = np.concatenate((Ytrain1, Ytrain2))
+#    Xtest = np.concatenate((Xtest1, Xtest2))
+#    Ytest = np.concatenate((Ytest1, Ytest2))
+#    return Xtrain, Ytrain, Xtest, Ytest
+
+
 def crossval_strat(X, Y, n, i):
-    Xtrain1, Ytrain1, Xtest1, Ytest1 = crossval(X[Y==-1], Y[Y==-1], n, i)
-    Xtrain2, Ytrain2, Xtest2, Ytest2 = crossval(X[Y==+1], Y[Y==+1], n, i)
-    Xtrain = np.concatenate((Xtrain1, Xtrain2))
-    Ytrain = np.concatenate((Ytrain1, Ytrain2))
-    Xtest = np.concatenate((Xtest1, Xtest2))
-    Ytest = np.concatenate((Ytest1, Ytest2))
-    return Xtrain, Ytrain, Xtest, Ytest
-
-
-def crossval_strat_multi_class(X, Y, n, i):
-    """
-    Cross val strat multi-classe
-    """
     Xtrains, Ytrains, Xtests, Ytests = [], [], [], []
     for y in np.unique(Y):
         Xtrainy, Ytrainy, Xtesty, Ytesty = crossval(X[Y==y], Y[Y==y], n, i)
@@ -189,5 +186,3 @@ def crossval_strat_multi_class(X, Y, n, i):
         Ytests.append(Ytesty)
     return (np.concatenate(Xtrains), np.concatenate(Ytrains),
             np.concatenate(Xtests), np.concatenate(Ytests))
-
-
