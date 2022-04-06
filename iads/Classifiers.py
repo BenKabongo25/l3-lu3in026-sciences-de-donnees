@@ -884,11 +884,11 @@ def construit_AD_num(X,Y,epsilon,LNoms = []):
         
         for i in range(nb_col):
             gain = 0
-            ((seuil, entropie), (_, _)) = discretise(X, Y, i)
+            ((seuil, entr), (_, _)) = discretise(X, Y, i)
             partition = ((X, Y), (None, None))
             if seuil is not None:
                 partition = partitionne(X, Y, i, seuil)
-            gain = entropie_classe - entropie
+            gain = entropie_classe - entr
             if gain > gain_max:
                 gain_max = gain
                 i_best = i
