@@ -11,6 +11,7 @@
 import copy
 import itertools
 import numpy as np
+import random
 import sys
 
 
@@ -975,3 +976,133 @@ class ClassifierArbreNumerique(Classifier):
             Cette fonction modifie GTree par effet de bord
         """
         self.racine.to_graph(GTree)
+
+        
+def tirage(VX, m, r):
+    return random.sample(VX, m) if not r else random.choices(VX, k=m)
+
+
+def echantillonLS(LS, m, r):
+    desc, label = LS
+    L = tirage(list(range(len(label))), m, r)
+    return desc[L,:], label[L]
+
+
+class ClassifierBaggingTree(Classifier):
+
+    def __init__(self, B, ratio, epsilon=.0, remise=True):
+        self.B = B
+        self.ratio = ratio
+        self.remise = remise
+        self.epsilon = epsilon
+        self.trees = []
+        
+    def train(self, LS):
+        desc_set, label_set = LS
+        m = int(self.ratio * desc_set.shape[0])
+        for _ in range(self.B):
+            cl_tree = ClassifierArbreNumerique(desc_set.shape[1], self.epsilon)
+            cl_tree.train(*(echantillonLS(LS, m, self.remise)))
+            self.trees.append(cl_tree)
+            
+    def predict(self, x):
+        pred = [cl_tree.predict(x) for cl_tree in self.trees]
+        u, c = np.unique(pred, return_counts=True)
+        return u[np.argmax(c)]
+    
+    
+def construit_AD_aleatoire(LS, eps, nb_att):
+    X, Y = LS
+    idxs = random.sample(range(X.shape[1]), nb_att)
+    return construit_AD_num(X[:, idxs], Y, eps), idxs
+
+
+class ArbreDecisionAleatoire(ClassifierArbreNumerique):
+    def __init__(self, eps, p):
+        self.eps = eps
+        self.p = p
+        self.idxs = None
+        self.racine = None
+    
+    def train(self, X, Y):
+        self.racine, self.idxs = construit_AD_aleatoire((X, Y), self.eps, self.p)
+        
+    def predict(self, x):
+        return self.racine.classifie(x[self.idxs])
+        
+        
+class ClassifierRandomForest(Classifier):
+    def __init__(self, B, p, m, eps=.0, re=True):
+        self.B = B
+        self.p = int(p)
+        self.m = m
+        self.eps = eps
+        self.re = re
+        self.trees = []
+        
+    def train(self, X, Y):
+        m = int(self.m * X.shape[0])
+        for _ in range(self.B):
+            cl_tree = ArbreDecisionAleatoire(self.eps, self.p)
+            cl_tree.train(*(echantillonLS((X, Y), m, self.re)))
+            self.trees.append(cl_tree)
+            
+    def predict(self, x):
+        pred = [cl_tree.predict(x) for cl_tree in self.trees]
+        u, c = np.unique(pred, return_counts=True)
+        return u[np.argmax(c)]
+    
+    
+class RegressionKernel:
+    """
+    Regression kernel
+    """
+
+    def __init__(self, in_dim, lr, kernel, init=0):
+        """
+        :param in_dim (int) : dimension de la description des exemples (espace originel)
+        :param lr : learning rate
+        :param kernel : Kernel à utiliser
+        :param init est le mode d'initialisation de w:
+            - si 0 (par défaut): initialisation à 0 de w,
+            - si 1 : initialisation par tirage aléatoire de valeurs petites
+        """
+        self.lr = lr
+        self.kernel = kernel
+        kernel_dim = kernel.get_output_dim()
+        if init == 0:
+            self.theta = np.zeros(kernel_dim)
+        else:
+            self.theta = .001 * (2 * np.random.uniform(0, 1, kernel_dim) - 1)
+        self.all_theta = []
+        self.coasts = []
+        
+    def coast_function(self, X, y):
+        m = len(y)
+        return np.sum((self.predict(X) - y) ** 2) / (2 * m)
+    
+    def grad(self, X, y):
+        m = len(y)
+        X_ = self.kernel.transform(X)
+        return X_.T.dot(self.predict(X) - y) / m
+    
+    def predict(self, X):
+        X_ = self.kernel.transform(X)
+        return X_.dot(self.theta)
+
+    def train(self, X, y, niter_max=1000):
+        """
+        :param X: ndarray avec des descriptions dans l'espace originel
+        :param y: ndarray avec les targets correspondants dans l'espace originel
+        :param niter_max (par défaut: 100) : nombre d'itérations maximale
+        """
+        X_ = self.kernel.transform(X)
+        for _ in range(niter_max):
+            self.theta = self.theta - self.lr * self.grad(X, y)
+            self.coasts.append(self.coast_function(X, y))
+
+    def coef_determination(self, X, y):
+        y_pred = self.predict(X)
+        u = ((y - y_pred) ** 2).sum()
+        v = ((y - y_pred.mean()) ** 2).sum()
+        return 1 - u/v

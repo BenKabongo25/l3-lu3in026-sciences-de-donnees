@@ -7,6 +7,7 @@
 # LU3IN026 - Sciences des données
 # Fonctions utiles
 
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -186,3 +187,32 @@ def crossval_strat(X, Y, n, i):
         Ytests.append(Ytesty)
     return (np.concatenate(Xtrains), np.concatenate(Ytrains),
             np.concatenate(Xtests), np.concatenate(Ytests))
+
+
+def leave_one_out(C, DS):
+    """ Classifieur * tuple[array, array] -> float
+    """
+    desc_set, label_set = DS
+    n = len(label_set)
+    cpt = 0
+    for i in range(n):
+        cl = copy.deepcopy(C)
+        cl.train(np.delete(desc_set, i, axis=0), np.delete(label_set, i))
+        if cl.predict(desc_set[i]) == label_set[i]:
+            cpt += 1
+    return cpt / n
+
+
+def analyse_perfs(perf):
+    return np.mean(perf), np.var(perf)
+
+
+def visualize(X, Y):
+    W, V = np.linalg.eig(X.T @ X)
+    i, j = np.argsort(W)[-2:]
+    Xj = np.dot(X, V.T[j])
+    Xi = np.dot(X, V.T[i])
+    n = len(np.unique(Y))
+    for y in range(n):
+        plt.scatter(Xj[Y==y], Xi[Y==y])
+    plt.legend(np.arange(n))

@@ -11,6 +11,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import random
 import scipy.cluster.hierarchy
 from scipy.spatial.distance import cdist
 
@@ -156,3 +157,76 @@ def clustering_hierarchique_average(df, dist_func='euclidean',
                                     verbose=False, dendrogramme=False):
     return clustering_hierarchique_linkage('average', df, dist_func,
                                           verbose, dendrogramme)
+
+
+def dist_vect(v1, v2):
+    return np.sqrt(np.sum((v1-v2)**2))
+
+
+def inertie_cluster(cluster):
+    return np.sum(dist_vect(cluster, centroide(cluster)) ** 2)
+
+
+def init_kmeans(K, Ens):
+    return np.array(random.sample(list(np.array(Ens)), K))
+
+
+def plus_proche(x,C):
+    return np.argmin(cdist(np.array(x).reshape(1, -1), C), axis=1)[0]
+
+
+def affecte_cluster(X,C):
+    Y = np.argmin(cdist(X, C), axis=1)
+    return {c:list(np.where(Y==c)[0]) for c in range(len(C))}
+
+
+def nouveaux_centroides(X,U):
+    return np.array([np.mean(np.array(X)[idxs], axis=0) for idxs in U.values()])
+
+
+def inertie_globale(X, U):
+    return np.sum([inertie_cluster(np.array(X)[idxs]) for idxs in U.values()])
+
+
+def kmoyennes(K, X, eps, iter_max, verbose=True):
+    ig = 0
+    U = {}
+    C = init_kmeans(K, X)
+    for i in range(iter_max):
+        U = affecte_cluster(X, C)
+        ig_ = inertie_globale(X, U)
+        if verbose: print(f'iteration {i} Inertie : {ig_:.4f} Difference: {np.abs(ig_-ig):.4f}')
+        if np.abs(ig_-ig) < eps:
+            break
+        ig = ig_
+        C = nouveaux_centroides(X, U)
+    return C, U
+
+
+def distance_max_cluster(cluster):
+    return np.max(cdist(cluster, cluster))
+
+
+def co_dist(X, U):
+    d = 0
+    X = np.array(X)
+    for idxs in U.values():
+        d += distance_max_cluster(X[idxs])
+    return d
+
+
+co_inertie = inertie_globale
+
+
+def index_dunn(X, U):
+    return co_dist(X, U) / co_inertie(X, U)
+
+
+def separabilite(C):
+    A = cdist(C, C)
+    A = A[~np.eye(A.shape[0],dtype=bool)].reshape(A.shape[0],-1)
+    return np.min(A)
+
+
+def index_xie_beni(X, C, U):
+    return co_inertie(X, U) / separabilite(C)
